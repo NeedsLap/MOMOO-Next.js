@@ -86,11 +86,11 @@ export async function GET(req: NextRequest) {
 
   // 최신순으로 가져오기 위해 뒤에서부터 slice
   const feedList: string[] = [...albumDoc.data().feedList];
-	
+
   if (feedList.length < skipNum) {
     return NextResponse.json([]);
   }
-	
+
   const albumType: AlbumType = userUid === uid ? 'my' : 'shared';
   const startIndex =
     feedList.length - limitNum < 0 ? 0 : feedList.length - limitNum;
