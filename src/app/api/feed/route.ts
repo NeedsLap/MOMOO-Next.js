@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
+
 import {
   checkAlbumPermission,
   getAlbumByName,
@@ -8,7 +9,14 @@ import {
 } from '@/utils/SDKUtils';
 
 import { AlbumType } from '@/types/album';
-	@@ -20,36 +20,36 @@ export async function GET(req: NextRequest) {
+
+export async function GET(req: NextRequest) {
+  const userUid = cookies().get('uid')?.value;
+  const limit = req.nextUrl.searchParams.get('limit');
+  const skip = req.nextUrl.searchParams.get('skip');
+  const albumName = req.nextUrl.searchParams.get('album');
+  const uid = req.nextUrl.searchParams.get('uid');
+
   if (!userUid) {
     return NextResponse.json(
       {
@@ -45,7 +53,8 @@ import { AlbumType } from '@/types/album';
     );
   }
 
-	@@ -58,11 +58,11 @@ export async function GET(req: NextRequest) {
+  const albumDoc = await getAlbumByName(uid, albumName);
+
   if (!albumDoc) {
     return NextResponse.json(
       {
@@ -57,7 +66,13 @@ import { AlbumType } from '@/types/album';
     );
   }
 
-	@@ -76,23 +76,27 @@ export async function GET(req: NextRequest) {
+  let hasPermission = true;
+
+  if (userUid !== uid) {
+    const sharedAlbums = (await getSharedAlbums(userUid)) || null;
+    hasPermission = await checkAlbumPermission(albumDoc, sharedAlbums);
+  }
+
   if (!hasPermission) {
     return NextResponse.json(
       {
@@ -71,11 +86,11 @@ import { AlbumType } from '@/types/album';
 
   // 최신순으로 가져오기 위해 뒤에서부터 slice
   const feedList: string[] = [...albumDoc.data().feedList];
-
+	
   if (feedList.length < skipNum) {
     return NextResponse.json([]);
   }
-    
+	
   const albumType: AlbumType = userUid === uid ? 'my' : 'shared';
   const startIndex =
     feedList.length - limitNum < 0 ? 0 : feedList.length - limitNum;
